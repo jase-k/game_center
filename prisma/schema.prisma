@@ -1,0 +1,62 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model GameState {
+  id            String       @id @default(cuid())
+  fen           String
+  currentPlayer String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  moveHistory   MoveHistory[]
+  pieces        GamePiece[]
+}
+
+model Piece {
+  id        Int       @id @default(autoincrement())
+  type      String    @unique
+  symbol    String
+  gamePieces GamePiece[]
+}
+
+model GamePiece {
+  id            Int      @id @default(autoincrement())
+  gameId        String
+  pieceId       Int
+  color         String
+  position      String?
+  captureOrder  Int?
+  game          GameState @relation(fields: [gameId], references: [id])
+  piece         Piece    @relation(fields: [pieceId], references: [id])
+  movesFrom     MoveHistory[] @relation("MovingPiece")
+  movesTo       MoveHistory[] @relation("CapturingPiece")
+
+  @@unique([gameId, position])
+  @@index([gameId])
+}
+
+model MoveHistory {
+  id              Int      @id @default(autoincrement())
+  gameId          String
+  fromSquare      String
+  toSquare        String
+  movingPieceId   Int
+  capturedPieceId Int?
+  promotionPieceId Int?
+  check           Boolean  @default(false)
+  checkmate       Boolean  @default(false)
+  san             String
+  moveNumber      Int
+  game            GameState @relation(fields: [gameId], references: [id])
+  movingPiece     GamePiece @relation("MovingPiece", fields: [movingPieceId], references: [id])
+  capturedPiece   GamePiece? @relation("CapturingPiece", fields: [capturedPieceId], references: [id])
+
+  @@unique([gameId, moveNumber])
+}
